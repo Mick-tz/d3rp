@@ -102,8 +102,9 @@ var d3rp = (function (d3) {
         grupoEjeX.selectAll('.domain, .tick line').remove();
 
         // data enter
-        grupoPrincipal.selectAll('rect').data(data)
-            .enter().append('rect')
+        const barras = grupoPrincipal.selectAll('rect').data(data);
+
+        barras.enter().append('rect')
             .attr('x', d => escalaX(valorX(d)))
             .attr('y', innerHeight)
             .attr('height',d => innerHeight - escalaY(valorY(d)))
@@ -111,6 +112,7 @@ var d3rp = (function (d3) {
             .attr('fill', colorGraficos)
             .attr('transform',d => `translate(0,-${innerHeight - escalaY(valorY(d))})`);
 
+        barras.exit().remove()
 
         // leyendas
         agregarLeyendas(svg, options, grupoEjeX, grupoEjeY)
@@ -270,16 +272,19 @@ var d3rp = (function (d3) {
         const dotSize = (options.dotSize) ? options.dotSize : 5;
 
         // variables escala y ejes
-        const escalaX = (options.formatoAdicionalEjes.valoresDominioX) ? scaleLinear()
+        const escalaX = (options.formatoAdicionalEjes && options.formatoAdicionalEjes.valoresDominioX) ?
+            scaleLinear()
                 .domain(options.formatoAdicionalEjes.valoresDominioX)
             .range([0, innerWidth]).nice() : scaleLinear()
                 .domain(extent(data, valorX))
-            .range([0, innerWidth]).nice()
+            .range([0, innerWidth]).nice();
 
-        const escalaY = scaleLinear()
-            .domain([0, max(data, valorY)])
-            .range([innerHeight, 0])
-            .nice();
+        const escalaY = (options.formatoAdicionalEjes && options.formatoAdicionalEjes.valoresDominioY) ?
+            scaleLinear()
+                .domain(options.formatoAdicionalEjes.valoresDominioY)
+            .range([innerHeight, 0]).nice() : scaleLinear()
+                .domain([0, max(data, valorY)])
+            .range([innerHeight, 0]).nice();
 
         // ejes
         const ejeX = axisBottom(escalaX)
@@ -340,10 +345,13 @@ var d3rp = (function (d3) {
                 .domain(extent(data, valorX))
             .range([0, innerWidth]).nice()
 
-        const escalaY = scaleLinear()
-            .domain([0, max(data, valorY)])
-            .range([innerHeight, 0])
-            .nice();
+        const escalaY = (options.formatoAdicionalEjes && options.formatoAdicionalEjes.valoresDominioY) ?
+            scaleLinear()
+                .domain(options.formatoAdicionalEjes.valoresDominioY)
+            .range([innerHeight, 0]).nice() : scaleLinear()
+                .domain([0, max(data, valorY)])
+            .range([innerHeight, 0]).nice();
+
         let lineGenerator;
         if (options.lineCurve) {
             lineGenerator = line()
@@ -459,6 +467,13 @@ var d3rp = (function (d3) {
 
         return svg;
     }
+    methods.wipe = (svgGrafica) => {
+        if ((typeof svgGrafica) === "string") {
+            svgGrafica = select(svgGrafica);
+        }
+        svgGrafica.select('.grupo-principal').remove();
+        return svgGrafica;
+    }
     methods.getOptionsExample = () => { return this.DEFAULT_OPTIONS }
     methods.setOptions = (options) => {
         this.options = options;
@@ -557,6 +572,7 @@ var d3rp = (function (d3) {
             ejeXtickPadding,
             innerWidth,
             innerHeight,
+            factorLeyenda,
             factorEje
         } = unfoldOptions(svgGrafica, options)
         // remove previous legends
@@ -580,10 +596,11 @@ var d3rp = (function (d3) {
 
         if (options.leyendaEjeY && options.leyendaEjeY !== '') {
             grupoEjeY.append('text')
-                .attr('y', -0.4*rem)
-                .attr('x', ( options.leyendaEjeY.length * factorEje*rem / 2) - options.leyendaEjeY.length * 0.12 * rem ) // numero magico, lo encontre jugando con los parametros, TODO: encontrar usando mates
+                .attr('y', -2.5*rem)
+                .attr('x', -innerHeight / 2) // numero magico, lo encontre jugando con los parametros, TODO: encontrar usando mates
                 .text(options.leyendaEjeY)
-                // .style('transform', 'rotate(90deg) translate(250px, 65px)')
+                .attr('transform', `rotate(-90)`)
+                .style('text-anchor', 'middle')
                 .attr('fill', '#495057')
                 .attr('class', 'leyenda-eje leyenda-y');
         }
